@@ -291,7 +291,7 @@ body::after{
 }
 .input.small{ min-width:80px; width:120px; }
 :root{
-  --tile-size: min(86px, calc((100vw - 122px) / 4));
+  --tile-size: min(86px, calc((100vw - 158px) / 4));
   --tile-radius:14px;
   --indicator-size:38px;
   --indicator-gap:10px;
@@ -563,6 +563,16 @@ body::after{
   margin-right:6px;
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.30), 0 2px 4px rgba(0,0,0,0.35);
   flex-shrink:0; vertical-align:middle;
+}
+
+@media (max-width: 520px) {
+  /* Diamond EV: prevent grid children from expanding past track width */
+  .layout-diamond > * { min-width: 0; }
+  /* Summary row: wrap EV + strategy onto separate lines */
+  .summary-s { flex-wrap: wrap; gap: 8px; }
+  /* Tighten table font so 5 columns have room to breathe */
+  .table { font-size: 11px; }
+  .table th, .table td { padding: 6px 4px; }
 }
   </style>
 </head>
