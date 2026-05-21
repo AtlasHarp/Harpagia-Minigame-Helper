@@ -4,13 +4,13 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Harpagia Helper</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Manrope:wght@400;500;600;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Cinzel+Decorative:wght@700&family=Manrope:wght@400;500;600;800;900&display=swap" rel="stylesheet">
   <style>
 :root{
-  --bg:#080e0e;
-  --panel:#091414;
-  --panel-2:#0e1d1b;
-  --blue:#1A9EC8;
+  --bg:#080c0c;
+  --panel:#091010;
+  --panel-2:#0e1816;
+  --blue:#1585A8;
   --red:#E74C3C;
   --green:#27AE60;
   --text:#EAF2F8;
@@ -33,8 +33,8 @@ html,body{
 }
 body{
   background:
-    radial-gradient(1200px 700px at 20% 0%, rgba(26,158,200,0.06), transparent 60%),
-    radial-gradient(900px 600px at 90% 10%, rgba(26,158,200,0.08), transparent 55%),
+    radial-gradient(1200px 700px at 20% 0%, rgba(26,158,200,0.04), transparent 60%),
+    radial-gradient(900px 600px at 90% 10%, rgba(26,158,200,0.05), transparent 55%),
     var(--bg);
   display:flex;
   align-items:flex-start;
@@ -49,7 +49,7 @@ body::after{
   top:-120px; left:50%;
   transform:translateX(-50%);
   width:700px; height:400px;
-  background:radial-gradient(ellipse, rgba(26,158,200,0.10) 0%, transparent 70%);
+  background:radial-gradient(ellipse, rgba(26,158,200,0.06) 0%, transparent 70%);
   pointer-events:none; z-index:0;
 }
 
@@ -63,6 +63,12 @@ body::after{
 
 @keyframes fadeDown { from{opacity:0;transform:translateY(-16px)} to{opacity:1;transform:translateY(0)} }
 @keyframes fadeUp   { from{opacity:0;transform:translateY(12px)}  to{opacity:1;transform:translateY(0)} }
+
+.page-title{text-align:center;padding:20px 28px 0;margin-bottom:4px;background:radial-gradient(ellipse 70% 120% at 50% 60%,rgba(26,158,200,0.09),transparent 80%);animation:fadeDown 0.6s ease both;}
+.page-title h1{font-family:'Cinzel',serif;font-size:clamp(22px,3.5vw,32px);font-weight:600;color:#cfe0ee;line-height:1.2;letter-spacing:0.06em;text-shadow:0 0 60px rgba(26,158,200,0.30),0 2px 4px rgba(0,0,0,0.6);}
+.page-title-credit{font-size:12px;color:rgba(207,224,238,0.60);letter-spacing:0.04em;margin-top:7px;}
+.page-title-rule{display:flex;align-items:center;gap:12px;margin-top:14px;color:rgba(26,158,200,0.4);font-size:16px;}
+.page-title-rule::before,.page-title-rule::after{content:'';flex:1;height:1px;background:linear-gradient(to right,transparent,rgba(26,158,200,0.25),transparent);}
 
 /* Sticky brand + tabs container (outer) */
 .topbar{
@@ -107,6 +113,8 @@ body::after{
 /* Segmented control (tabs) */
 .segmented{
   display:inline-flex;
+  flex-wrap:wrap;
+  justify-content:center;
   background:var(--panel);
   border-radius:16px;
   padding:6px;
@@ -135,7 +143,7 @@ body::after{
   background:var(--blue);
   color:#041a16;
   border-color:transparent;
-  box-shadow: 0 8px 20px rgba(26,158,200,.30);
+  box-shadow: 0 8px 20px rgba(21,133,168,.25);
 }
 
 /* SPA mount */
@@ -154,7 +162,7 @@ body::after{
     inset 0 -10px 20px rgba(0,0,0,.45),
     0 18px 40px rgba(0,0,0,.35);
   margin-bottom:12px;
-  border-left:3px solid rgba(26,158,200,0.38);
+  border-left:3px solid rgba(26,158,200,0.22);
   position:relative;
   animation: fadeUp 0.45s ease both;
 }
@@ -282,7 +290,7 @@ body::after{
 }
 .input.small{ min-width:80px; width:120px; }
 :root{
-  --tile-size:86px;
+  --tile-size: min(86px, calc((100vw - 122px) / 4));
   --tile-radius:14px;
   --indicator-size:38px;
   --indicator-gap:10px;
@@ -545,13 +553,28 @@ body::after{
   cursor:pointer; list-style:none; color:#cfe0ee; font-weight:800;
 }
 .details-zen[open]{ border-color: rgba(255,255,255,.18); }
+
+.step-num{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:18px; height:18px; border-radius:50%;
+  background:rgba(255,255,255,0.20);
+  font-size:10px; font-weight:900; line-height:1;
+  margin-right:6px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.30), 0 2px 4px rgba(0,0,0,0.35);
+  flex-shrink:0; vertical-align:middle;
+}
   </style>
 </head>
 <body>
   <div class="app">
+    <div class="page-title">
+      <h1>Minigame Helper</h1>
+      <div class="page-title-credit">Tools made by @adude</div>
+      <div class="page-title-rule">✦</div>
+    </div>
+
     <header class="topbar" role="navigation" aria-label="Tool switcher">
       <div class="topbar-box">
-        <div class="brand">Harpagia Helper</div>
         <nav class="segmented" id="segmentedToggle">
           <button class="seg-btn active" data-view="grid" aria-pressed="true">School</button>
           <button class="seg-btn" data-view="sanctum" aria-pressed="false">Sanctum Solver</button>
@@ -1775,6 +1798,9 @@ function initEngine(){
   const btnSetBoard = document.getElementById('btnSetBoard');
   const btnDoneEdit = document.getElementById('btnDoneEdit');
   const btnClearBoard = document.getElementById('btnClearBoard');
+  const btnShrinkBoard = document.getElementById('btnShrinkBoard');
+  const btnGrowBoard = document.getElementById('btnGrowBoard');
+  const quickResizeGroup = document.getElementById('quickResizeGroup');
   const btnStart = document.getElementById('btnStart');
   const btnStop = document.getElementById('btnStop');
   const btnResetRounds = document.getElementById('btnResetRounds');
@@ -1790,10 +1816,6 @@ function initEngine(){
   const inpGreenTol = document.getElementById('inpGreenTol');
   const inpMinSamplesFrac = document.getElementById('inpMinSamplesFrac');
   const btnRestoreDefaults = document.getElementById('btnRestoreDefaults');
-
-  const chkFocusBoard = document.getElementById('chkFocusBoard');
-  const rngFocusZoom = document.getElementById('rngFocusZoom');
-  const lblFocusZoom = document.getElementById('lblFocusZoom');
 
   const elFPS = document.getElementById('fps');
   const elPhase = document.getElementById('phase');
@@ -1849,8 +1871,7 @@ function initEngine(){
       tolerance: { teal: 48, green: 36 }
     },
     minSamplesFraction: 0.25,
-    diagnostics: false,
-    focus: { active:false, zoom:2.0 }
+    diagnostics: false
   };
   const config = JSON.parse(JSON.stringify(defaultConfig));
 
@@ -1872,9 +1893,6 @@ function initEngine(){
     inpTealTol.value = String(config.match.tolerance.teal);
     inpGreenTol.value = String(config.match.tolerance.green);
     inpMinSamplesFrac.value = String(config.minSamplesFraction);
-    chkFocusBoard.checked = !!config.focus.active;
-    rngFocusZoom.value = String(config.focus.zoom);
-    lblFocusZoom.textContent = `${Number(config.focus.zoom).toFixed(1)}×`;
   }
   inpRevealEndSilence.addEventListener('change', ()=>{ const v=+inpRevealEndSilence.value; if (Number.isFinite(v)) config.revealEndSilenceMs = Math.max(300, Math.min(2000, v)); });
   inpInputTimeout.addEventListener('change', ()=>{ const v=+inpInputTimeout.value; if (Number.isFinite(v)) config.inputTimeoutMs = Math.max(0, Math.min(3600000, v)); });
@@ -1883,8 +1901,6 @@ function initEngine(){
   inpTealTol.addEventListener('change', ()=>{ const v=+inpTealTol.value; if (Number.isFinite(v)) config.match.tolerance.teal = Math.max(0, Math.min(180, v)); });
   inpGreenTol.addEventListener('change', ()=>{ const v=+inpGreenTol.value; if (Number.isFinite(v)) config.match.tolerance.green = Math.max(0, Math.min(180, v)); });
   inpMinSamplesFrac.addEventListener('change', ()=>{ const v=+inpMinSamplesFrac.value; if (Number.isFinite(v)) config.minSamplesFraction = Math.max(0, Math.min(1, v)); });
-  chkFocusBoard.addEventListener('change', ()=>{ config.focus.active = !!chkFocusBoard.checked; });
-  rngFocusZoom.addEventListener('input', ()=>{ const v = Math.max(1, Math.min(3, +rngFocusZoom.value || 1)); config.focus.zoom = v; lblFocusZoom.textContent = `${v.toFixed(1)}×`; });
   btnAggressive.addEventListener('click', (e)=>{ e.preventDefault(); applyAggressivePreset(); });
   btnRestoreDefaults.addEventListener('click', (e)=>{ e.preventDefault(); Object.assign(config, JSON.parse(JSON.stringify(defaultConfig))); syncAdvancedUI(); });
 
@@ -2042,6 +2058,43 @@ function initEngine(){
 
   // Overlay sizing
   function updateOverlayBox(){
+    const vW = video.videoWidth || 0;
+
+    if (hasBoard && boardRect && vW && editor.mode === 'idle') {
+      // Crop mode: canvas renders the board region; video collapses to 1px (keeps decoding)
+      video.style.position = 'absolute';
+      video.style.opacity = '0';
+      video.style.width = '1px';
+      video.style.height = '1px';
+      overlay.style.position = 'relative';
+      overlay.style.left = '';
+      overlay.style.top = '';
+
+      const p = previewWrap.getBoundingClientRect();
+      const containerW = Math.max(1, p.width);
+
+      // padding above board in video px, targeting ~100 screen px
+      const padTopVid = Math.max(0, Math.round(100 * boardRect.w / containerW));
+      const cropY = Math.max(0, boardRect.y - padTopVid);
+      const cropH = boardRect.h + (boardRect.y - cropY);
+      const scale = containerW / Math.max(1, boardRect.w);
+      const destW = Math.max(1, Math.round(containerW));
+      const destH = Math.max(1, Math.round(cropH * scale));
+
+      overlay.style.width = destW + 'px';
+      overlay.style.height = destH + 'px';
+      if (overlay.width !== destW) overlay.width = destW;
+      if (overlay.height !== destH) overlay.height = destH;
+      return;
+    }
+
+    // Normal mode: restore video
+    video.style.position = '';
+    video.style.opacity = '';
+    video.style.width = '';
+    video.style.height = '';
+    overlay.style.position = 'absolute';
+
     const v = video.getBoundingClientRect();
     const p = previewWrap.getBoundingClientRect();
     const left = (v.width>0 && v.height>0) ? v.left : p.left;
@@ -2208,26 +2261,29 @@ function initEngine(){
     const sx = vw / vW;
     const sy = vh / vH;
 
-    // Zoom Board (no dim background)
-    if (config.focus.active && boardRect && vW){
-      const baseW = boardRect.w * sx, baseH = boardRect.h * sy;
-      const z = Math.max(1, Math.min(3, config.focus.zoom || 1));
-      const dw = Math.max(1, Math.round(baseW * z));
-      const dh = Math.max(1, Math.round(baseH * z));
-      const dx = Math.round((vw - dw) / 2);
-      const dy = Math.round((vh - dh) / 2);
+    // Crop mode: board is set and not being edited — render cropped board region
+    if (hasBoard && boardRect && vW && editor.mode === 'idle') {
+      const p = previewWrap.getBoundingClientRect();
+      const containerW = Math.max(1, p.width);
+      const padTopVid = Math.max(0, Math.round(100 * boardRect.w / containerW));
+      const cropX = boardRect.x;
+      const cropY = Math.max(0, boardRect.y - padTopVid);
+      const cropW = boardRect.w;
+      const cropH = boardRect.h + (boardRect.y - cropY);
+      const boardYCanvas = Math.round((boardRect.y - cropY) * (vw / Math.max(1, cropW)));
+      const bwc = vw;
+      const bhc = vh - boardYCanvas;
 
       try {
-        ctxOv.drawImage(video, boardRect.x, boardRect.y, boardRect.w, boardRect.h, dx, dy, dw, dh);
+        ctxOv.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, vw, vh);
       } catch(_) {}
 
-      drawGridAtRect(dx, dy, dw, dh);
+      drawGridAtRect(0, boardYCanvas, bwc, bhc);
 
-      // Highlights
       const gap = 0.12;
-      const stepX = dw/cols, stepY = dh/rows;
+      const stepX = bwc / cols, stepY = bhc / rows;
       const wTile = stepX*(1-gap), hTile = stepY*(1-gap);
-      const gxInset=stepX-wTile, gyInset=stepY-hTile;
+      const gxInset = stepX-wTile, gyInset = stepY-hTile;
 
       if (phase==='waiting-input' && revealSeq.length>0){
         const k = inputSeq.length;
@@ -2239,47 +2295,40 @@ function initEngine(){
         const currIdx = revealSeq[k] ?? null;
         if (currIdx != null){
           const r = Math.floor(currIdx/cols), c = currIdx%cols;
-          const x = dx + c*stepX + gxInset*0.5;
-          const y = dy + r*stepY + gyInset*0.5;
           ctxOv.lineWidth = 3 + 2*pulse;
           ctxOv.strokeStyle = `rgba(34,197,94,${0.55 + 0.35*pulse})`;
           ctxOv.shadowColor = 'rgba(34,197,94,0.35)'; ctxOv.shadowBlur = 10*pulse;
-          ctxOv.strokeRect(x,y,wTile,hTile);
+          ctxOv.strokeRect(c*stepX + gxInset*0.5, boardYCanvas + r*stepY + gyInset*0.5, wTile, hTile);
         }
 
         const nextIdx = revealSeq[k+1] ?? null;
         if (nextIdx != null){
           const r2 = Math.floor(nextIdx/cols), c2 = nextIdx%cols;
-          const x2 = dx + c2*stepX + gxInset*0.5;
-          const y2 = dy + r2*stepY + gyInset*0.5;
           ctxOv.lineWidth = 2.5 + 1.5*pulse;
           ctxOv.strokeStyle = `rgba(255,0,255,${0.45 + 0.35*pulse})`;
           ctxOv.shadowColor = 'rgba(255,0,255,0.25)'; ctxOv.shadowBlur = 8*pulse;
-          ctxOv.strokeRect(x2,y2,wTile,hTile);
+          ctxOv.strokeRect(c2*stepX + gxInset*0.5, boardYCanvas + r2*stepY + gyInset*0.5, wTile, hTile);
         }
       } else {
         guideHeader.style.display='none';
       }
 
-      // Diagnostics on zoomed view
       if (config.diagnostics && diag.tiles.length === tileRects.length){
         const sw = Math.max(4, Math.min(12, Math.round(stepX * 0.25)));
         for (let i=0;i<tileRects.length;i++){
           const dt = diag.tiles[i]; if (!dt) continue;
           const rr = Math.floor(i/cols), cc = i%cols;
-          const cx = dx + cc*stepX + stepX*0.5;
-          const cy = dy + rr*stepY + stepY*0.5;
           ctxOv.save();
           ctxOv.fillStyle = toCssHex(dt.masked);
           ctxOv.strokeStyle = 'rgba(0,0,0,0.6)';
           ctxOv.lineWidth = 1;
-          ctxOv.fillRect(cx - sw/2, cy - sw/2, sw, sw);
-          ctxOv.strokeRect(cx - sw/2, cy - sw/2, sw, sw);
+          ctxOv.fillRect(cc*stepX + stepX*0.5 - sw/2, boardYCanvas + rr*stepY + stepY*0.5 - sw/2, sw, sw);
+          ctxOv.strokeRect(cc*stepX + stepX*0.5 - sw/2, boardYCanvas + rr*stepY + stepY*0.5 - sw/2, sw, sw);
           ctxOv.restore();
         }
       }
 
-      return; // zoom branch done
+      return;
     }
 
     // Normal view
@@ -2563,7 +2612,7 @@ function initEngine(){
     guideHeader.style.display='none'; guideHeader.textContent='';
     if (clearBoard){
       boardRect=null; tileRects=[]; hasBoard=false;
-      btnDoneEdit.disabled=true; btnClearBoard.disabled=true;
+      btnDoneEdit.disabled=true; btnClearBoard.disabled=true; quickResizeGroup.style.display='none';
       Object.assign(editor,{mode:'idle',rect:null,activeHandle:null});
       setOverlayPointer(false);
     }
@@ -2595,6 +2644,8 @@ function initEngine(){
 
   btnSetBoard.addEventListener('click', ()=>{
     if (!video.srcObject){ alert('Start capture first.'); return; }
+    // Set edit mode first so updateOverlayBox exits crop mode and restores the video
+    editor.mode='edit';
     updateOverlayBox();
     requestAnimationFrame(updateOverlayBox);
     setOverlayPointer(true);
@@ -2609,9 +2660,7 @@ function initEngine(){
       const y = Math.round((overlay.height - side)/2);
       editor.rect = { x, y, w: side, h: side };
     }
-
-    editor.mode='edit';
-    btnDoneEdit.disabled=false;
+    btnDoneEdit.disabled=false; quickResizeGroup.style.display='flex';
     if (document.activeElement && document.activeElement !== overlay) {
       try { document.activeElement.blur(); } catch {}
     }
@@ -2624,12 +2673,25 @@ function initEngine(){
       commitEditorRectToBoard();
       editor.mode='idle';
       setOverlayPointer(false);
-      btnDoneEdit.disabled=true;
+      btnDoneEdit.disabled=true; quickResizeGroup.style.display='none';
       drawOverlay();
     }
   });
 
   btnClearBoard.addEventListener('click', ()=>{ resetDetectionState({clearBoard:true}); drawOverlay(); });
+
+  function quickResizeBoard(delta) {
+    if (!editor.rect) return;
+    const newSide = Math.max(20, editor.rect.w + delta);
+    editor.rect = {
+      x: clamp(editor.rect.x + (editor.rect.w - newSide) / 2, 0, overlay.width - newSide),
+      y: clamp(editor.rect.y + (editor.rect.h - newSide) / 2, 0, overlay.height - newSide),
+      w: newSide, h: newSide
+    };
+    drawOverlay();
+  }
+  btnShrinkBoard.addEventListener('click', ()=> quickResizeBoard(-10));
+  btnGrowBoard.addEventListener('click',   ()=> quickResizeBoard(+10));
 
   btnStart.addEventListener('click', ()=>{
     if (!stream){ alert('Start capture first.'); return; }
@@ -2679,7 +2741,7 @@ async function zenInit(root) {
           <li>Mirror or cast your device to your computer (native apps, Discord). Larger view and higher frame rate works best. If streaming, tap on your device instead of clicking. I have yet to have Google Meet work. Zoom is untested.</li>
           <li>I recommend holding your phone next to the grid to follow along faster if you cant click.</li>
           <li><strong>Flow:</strong> Start Capture → Set Board → Done → Start Detection → Train (on your device).</li>
-          <li><strong>Keyboard while editing:</strong> Arrows to move, + / = to grow, - to shrink, Enter = Done.</li>
+          <li><strong>To adjust board:</strong> Arrow keys to move, + / = to grow, - to shrink, Enter = Done.</li>
           <li><strong>Click the green; magenta shows the next tile.</strong></li>
           <li>If you are sharing your screen through discord or similar with lot's of compression, open Advance Settings and click Aggressive Preset.</li>
           <li>If it is too sensitive (false positives), DECREASE the Teal/Green Tolerance.</li>
@@ -2699,18 +2761,31 @@ async function zenInit(root) {
         <div class="panel-title" style="margin-bottom:8px;">Controls</div>
         <div class="controls-zen">
           <div class="row-zen">
-            <button id="btnCapture" class="btn btn-primary">Start Capture</button>
+            <button id="btnCapture" class="btn btn-primary"><span class="step-num">1</span>Start Capture</button>
             <button id="btnStopCapture" class="btn btn-ghost" disabled>Stop Capture</button>
           </div>
 
           <div class="row-zen">
-            <button id="btnSetBoard" class="btn btn-ghost">Set Board</button>
-            <button id="btnDoneEdit" class="btn btn-primary" disabled>Done</button>
+            <button id="btnSetBoard" class="btn btn-primary"><span class="step-num">2</span>Set Board</button>
+            <button id="btnDoneEdit" class="btn btn-primary" disabled><span class="step-num">3</span>Done</button>
             <button id="btnClearBoard" class="btn btn-ghost" disabled>Clear</button>
+            <div id="quickResizeGroup" style="display:none; flex-direction:column; gap:8px; width:100%;">
+              <ul style="margin:0; padding-left:18px; color:#9eb6c8; font-size:12px; line-height:1.7;">
+                <li>Use arrow keys to move board</li>
+                <li>Use +/= to increase board size by 1px</li>
+                <li>Use - to decrease board size by 1px</li>
+                <li>Use the buttons below to alter size by 10px</li>
+              </ul>
+              <div style="display:flex; align-items:center; gap:10px;">
+                <span style="color:#9eb6c8; font-size:12px; font-weight:600;">Quick resize:</span>
+                <button id="btnShrinkBoard" class="btn btn-ghost">−</button>
+                <button id="btnGrowBoard" class="btn btn-ghost">+</button>
+              </div>
+            </div>
           </div>
 
           <div class="row-zen">
-            <button id="btnStart" class="btn btn-primary" disabled>Start Detection</button>
+            <button id="btnStart" class="btn btn-primary" disabled><span class="step-num">4</span>Start Detection</button>
             <button id="btnStop" class="btn btn-ghost" disabled>Stop Detection</button>
             <button id="btnResetRounds" class="btn btn-ghost" disabled>Reset Rounds</button>
           </div>
@@ -2723,18 +2798,6 @@ async function zenInit(root) {
               <option value="hard">Hard (6×6)</option>
               <option value="expert" selected>Expert (6×6)</option>
             </select>
-          </div>
-
-          <div class="row-zen" style="align-items:center;">
-            <label style="display:flex; align-items:center; gap:8px; min-width:160px;">
-              <input id="chkFocusBoard" type="checkbox" />
-              Zoom Board
-            </label>
-            <div style="flex:1; min-width:220px; display:flex; gap:10px; align-items:center;">
-              <label style="white-space:nowrap;">Zoom</label>
-              <input id="rngFocusZoom" class="input" type="range" min="1" max="3" step="0.1" />
-              <span id="lblFocusZoom" style="min-width:42px; text-align:right;">2.0×</span>
-            </div>
           </div>
 
           <details id="advDetails" class="details-zen">
