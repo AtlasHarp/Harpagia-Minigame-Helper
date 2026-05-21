@@ -71,11 +71,7 @@ body::after{
 .page-title-rule{display:flex;align-items:center;gap:12px;margin-top:14px;color:rgba(26,158,200,0.4);font-size:16px;}
 .page-title-rule::before,.page-title-rule::after{content:'';flex:1;height:1px;background:linear-gradient(to right,transparent,rgba(26,158,200,0.25),transparent);}
 
-/* Sticky brand + tabs container (outer) */
 .topbar{
-  position: sticky;
-  top: 8px;
-  z-index: 200;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -457,10 +453,9 @@ body::after{
 }
 @media (max-width: 860px){ .layout-zen{ grid-template-columns:1fr; } }
 
-/* Make the entire left controls card sticky */
 .layout-zen > .card:first-child{
   position: sticky;
-  top: 104px;
+  top: 16px;
   align-self: start;
   z-index: 50;
 }
