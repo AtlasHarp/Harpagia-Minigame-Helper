@@ -341,6 +341,27 @@ body::after{
 
 .results-grid{ min-height: var(--results-min-h-grid); }
 
+/* School: read board from screen */
+.sc-card [hidden]{ display:none !important; }
+.sc-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+.sc-row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+.sc-row .btn{ padding:10px 16px; }
+.sc-note{ margin-top:10px; background:var(--panel-2); border-left:3px solid #F1C40F; border-radius:10px; padding:10px 12px; color:#cfe0ee; font-size:13px; line-height:1.5; }
+.sc-stage{ position:relative; margin-top:12px; min-height:150px; display:flex; align-items:center; justify-content:center; background:var(--panel-2); border-radius:12px; border:1px dashed rgba(255,255,255,.10); overflow:hidden; box-shadow: inset 0 2px 0 rgba(255,255,255,.04), inset 0 -8px 16px rgba(0,0,0,.45); }
+.sc-stage.sc-drop{ border-color:var(--blue); }
+.sc-stage canvas{ display:block; touch-action:none; cursor:crosshair; user-select:none; -webkit-user-select:none; }
+.sc-stage canvas:focus-visible{ outline:2px solid var(--blue); }
+.sc-stage video{ position:absolute; width:1px; height:1px; opacity:0; pointer-events:none; }
+.sc-empty{ color:#9eb6c8; font-style:italic; text-align:center; padding:20px; max-width:48ch; font-size:14px; line-height:1.5; }
+.sc-opts{ margin-top:10px; color:#b9c9d8; font-size:13px; }
+.sc-opts label{ display:inline-flex; align-items:center; gap:6px; cursor:pointer; }
+.sc-foot{ display:flex; gap:6px 12px; flex-wrap:wrap; align-items:center; justify-content:center; margin-top:8px; color:#9eb6c8; font-size:12px; }
+.sc-link{ appearance:none; background:none; border:0; color:#8ed8e8; text-decoration:underline; cursor:pointer; font:inherit; font-weight:800; padding:0; }
+.sc-card kbd{ font-family:"Courier New", ui-monospace, monospace; font-weight:800; font-size:12px; border:1px solid rgba(255,255,255,.18); border-bottom-width:2px; border-radius:5px; padding:0 4px; color:#cfe0ee; font-style:normal; }
+.cell.sc-amb{ outline:3px dashed #F1C40F; outline-offset:3px; }
+.cell.sc-fixed{ position:relative; }
+.cell.sc-fixed::after{ content:'fixed'; position:absolute; top:5px; right:7px; font-size:9px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; opacity:.75; }
+
 .tap-groups{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
 .row{ display:flex; align-items:center; justify-content:space-between; padding:6px 0; border-bottom:1px dashed rgba(255,255,255,.08); }
 .row:last-child{ border-bottom:none; }
@@ -857,7 +878,7 @@ function columnSumAfterTaps(g, colIdx, taps){
 }
 
 function optimizeTaps(grid){
-  let bestSum = -Infinity;
+  let bestSum = -Infinity, bestTaps = Infinity;
   let bestRowTaps = null, bestColTaps = null;
   for(let r0=0;r0<3;r0++){
     for(let r1=0;r1<3;r1++){
@@ -874,8 +895,10 @@ function optimizeTaps(grid){
             }
             colTaps.push(bestK); total+=bestCol;
           }
-          if(total > bestSum){
-            bestSum=total; bestRowTaps=rowTaps; bestColTaps=colTaps;
+          // Among equal scores, prefer the solution with the fewest taps.
+          const taps = rowTaps.reduce((a,b)=>a+b,0) + colTaps.reduce((a,b)=>a+b,0);
+          if(total > bestSum || (total === bestSum && taps < bestTaps)){
+            bestSum=total; bestTaps=taps; bestRowTaps=rowTaps; bestColTaps=colTaps;
           }
         }
       }
@@ -927,16 +950,24 @@ function renderBoard(boardEl){
     c.className='tap-indicator'; c.id=`g-col-${j}`;
     indicatorsEl.appendChild(c);
   }
+  schoolCapDecorate(boardEl);
   requestAnimationFrame(()=> updateIndicators(lastRowTaps,lastColTaps));
 }
 
 function onCellClick(i,j,cell){
   grid[i][j] = nextValue(grid[i][j]);
-  cell.className = 'cell ' + classFor(grid[i][j]);
-  cell.textContent = grid[i][j]===1?'+1':String(grid[i][j]);
   showGridPlaceholder();
   lastRowTaps=[0,0,0,0]; lastColTaps=[0,0,0,0];
+  // If the board came from a screen read, this fix teaches the reader and may correct similar tiles.
+  if (schoolCapOnCellEdit(i, j)) {
+    renderBoard(document.getElementById('gridBoard'));
+  } else {
+    cell.className = 'cell ' + classFor(grid[i][j]);
+    cell.textContent = grid[i][j]===1?'+1':String(grid[i][j]);
+    schoolCapDecorate(document.getElementById('gridBoard'));
+  }
   requestAnimationFrame(()=> updateIndicators(lastRowTaps,lastColTaps));
+  schoolCapRedraw();
 }
 
 function clearIndicators(){
@@ -1033,6 +1064,15 @@ function renderGridResults(bestSum, rowTaps, colTaps, sequence){
 
   lastRowTaps=[...rowTaps]; lastColTaps=[...colTaps];
   requestAnimationFrame(()=> updateIndicators(lastRowTaps,lastColTaps));
+  schoolCapRedraw();
+}
+
+function gridSolve(){
+  const { bestSum, bestRowTaps, bestColTaps } = optimizeTaps(grid);
+  const sequence=[];
+  bestRowTaps.forEach((t,i)=>{ for(let k=0;k<t;k++) sequence.push(`row ${i+1}`); });
+  bestColTaps.forEach((t,j)=>{ for(let k=0;k<t;k++) sequence.push(`column ${j+1}`); });
+  renderGridResults(bestSum, bestRowTaps, bestColTaps, sequence);
 }
 
 async function gridInit(root){
@@ -1054,9 +1094,40 @@ async function gridInit(root){
           <li>Indicators show how many times to tap each row or column.</li>
           <li>Editing the board clears the solution until you Solve again.</li>
           <li>Not every board has a 14+ solution. This tool only provides the perfect solution (highest score) for your board.</li>
-          <li>Use this on a different device than the game. The board changes when minimizing the game.</li>
+          <li>The board changes when minimizing the game. Use this on a different device, or read the board from a mirrored screen below (iPhone Mirroring on Mac works well).</li>
+          <li><strong>Read from screen:</strong> Capture Window (or paste a screenshot) → drag a box around the 16 tiles → the board fills in and solves. The box is remembered.</li>
+          <li>If a tile is read wrong, tap it to fix it, then press Solve. Fixes teach the reader what your tiles look like.</li>
           <li>This is fan made. Don't bug souptheduck about this helper lol.</li>
         </ul>
+      </div>
+    </section>
+
+    <section class="card sc-card" id="scCard">
+      <div class="sc-head">
+        <div class="panel-title">Read Board From Screen</div>
+        <span class="badge" id="scSrc">No screen yet</span>
+      </div>
+      <div class="sc-row">
+        <button class="btn btn-primary" id="scCapture" type="button">Capture Window</button>
+        <button class="btn btn-ghost" id="scStop" type="button" hidden>Stop Capture</button>
+        <button class="btn btn-ghost" id="scOpen" type="button">Open Screenshot</button>
+        <input type="file" id="scFile" accept="image/*" hidden>
+        <button class="btn btn-primary" id="scRead" type="button" disabled>Read Board</button>
+      </div>
+      <div class="sc-note" id="scNote" hidden></div>
+      <div class="sc-stage" id="scStage">
+        <canvas id="scView" tabindex="0" hidden aria-label="Captured screen. Drag to draw a box around the 16 tiles."></canvas>
+        <div class="sc-empty" id="scEmpty">Capture the iPhone Mirroring window, or paste a screenshot with <kbd>⌘</kbd> <kbd>V</kbd> / <kbd>Ctrl</kbd> <kbd>V</kbd>. You can also drop an image here.</div>
+        <video id="scVideo" muted playsinline autoplay></video>
+      </div>
+      <div class="sc-row sc-opts">
+        <label><input type="checkbox" id="scAuto"> Keep reading while capturing</label>
+        <label><input type="checkbox" id="scZoom"> Zoom to board</label>
+      </div>
+      <div class="hint" id="scHint"></div>
+      <div class="sc-foot">
+        <span id="scState"></span>
+        <button class="sc-link" id="scForget" type="button" hidden>Forget learned tiles</button>
       </div>
     </section>
 
@@ -1090,23 +1161,19 @@ async function gridInit(root){
   const boardEl = document.getElementById('gridBoard');
   indicatorsEl = document.getElementById('gridIndicators');
 
+  schoolCapInit();
   updateTileSize();
   renderBoard(boardEl);
   showGridPlaceholder();
 
-  document.getElementById('gridSolveBtn').addEventListener('click', ()=>{
-    const { bestSum, bestRowTaps, bestColTaps } = optimizeTaps(grid);
-    const sequence=[];
-    bestRowTaps.forEach((t,i)=>{ for(let k=0;k<t;k++) sequence.push(`row ${i+1}`); });
-    bestColTaps.forEach((t,j)=>{ for(let k=0;k<t;k++) sequence.push(`column ${j+1}`); });
-    renderGridResults(bestSum, bestRowTaps, bestColTaps, sequence);
-  });
+  document.getElementById('gridSolveBtn').addEventListener('click', gridSolve);
 
   document.getElementById('gridResetBtn').addEventListener('click', ()=>{
+    schoolCapUnlink();
     grid = Array.from({length:4}, ()=> Array(4).fill(0));
+    lastRowTaps=[0,0,0,0]; lastColTaps=[0,0,0,0];
     renderBoard(boardEl);
     showGridPlaceholder();
-    lastRowTaps=[0,0,0,0]; lastColTaps=[0,0,0,0];
     requestAnimationFrame(()=> updateIndicators(lastRowTaps,lastColTaps));
   });
 
@@ -1115,6 +1182,7 @@ async function gridInit(root){
 
 function gridDestroy(){
   window.removeEventListener('resize', onResize);
+  schoolCapDestroy();
 }
 
 function onResize(){
@@ -1123,6 +1191,564 @@ function onResize(){
     updateTileSize();
     updateIndicators(lastRowTaps,lastColTaps);
   }), 120);
+}
+
+// === grid/capture ===
+
+// Reads the School board from a captured window (e.g. iPhone Mirroring on a Mac) or from a
+// pasted / dropped screenshot, then fills the board and solves it.
+// Tiles are matched by colour (red -1, gold 0, green +1) to start with. When the user fixes a
+// tile, its look is remembered; once all three values have been seen, whole tiles are matched
+// (colour and digit), so boards with unexpected colours still read correctly.
+let schoolCap = null;
+function schoolCapDestroy(){ if (schoolCap){ try { schoolCap.destroy(); } catch(e){ console.warn('School capture destroy error:', e); } schoolCap = null; } }
+function schoolCapOnCellEdit(i, j){ return schoolCap ? schoolCap.onCellEdit(i, j) : false; }
+function schoolCapDecorate(boardEl){ if (schoolCap) schoolCap.decorate(boardEl); }
+function schoolCapUnlink(){ if (schoolCap) schoolCap.unlink(); }
+function schoolCapRedraw(){ if (schoolCap) schoolCap.redraw(); }
+
+function schoolCapInit(){
+  schoolCapDestroy();
+  const $ = (id) => document.getElementById(id);
+  const store = {
+    get(k, d){ try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+    set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+    del(k){ try { localStorage.removeItem(k); } catch {} }
+  };
+  const K_RECT = 'harpagia-school-rect', K_SAMPLES = 'harpagia-school-samples', K_ZOOM = 'harpagia-school-zoom';
+  const SESSION = Math.random().toString(36).slice(2, 8);
+  const VALUES = [-1, 0, 1];
+  const WORK = 256, CELL = 64, INSET = 0.2, TH = 10, SHIFT = 2;
+  const PALETTE = { '-1': [184, 58, 44], '0': [196, 154, 10], '1': [30, 138, 74] };
+  const TILE_FILL = { '-1': '#b83a2c', '0': '#c49a0a', '1': '#1e8a4a' };
+  const TILE_INK = { '-1': '#fff', '0': '#222', '1': '#fff' };
+  const label = (v) => v === 1 ? '+1' : String(v);
+
+  const stage = $('scStage'), view = $('scView'), vctx = view.getContext('2d'), video = $('scVideo');
+  const work = document.createElement('canvas');
+  work.width = work.height = WORK;
+  const wctx = work.getContext('2d', { willReadFrequently: true });
+
+  let source = null;        // { el, kind: 'video'|'image', w, h }
+  let stream = null;
+  let rect = null;          // board box in source pixels
+  let lastRead = null;      // { id, feats, pred, amb, locked:Set }
+  let linked = false;       // true while the board on screen came from a read
+  let readSeq = 0;
+  let samples = store.get(K_SAMPLES, []);
+  if (!Array.isArray(samples)) samples = [];
+  samples = samples.filter(s => s && VALUES.includes(s.v) && Array.isArray(s.m) && Array.isArray(s.t) && s.t.length === TH * TH * 3);
+  let V = null, frozenView = null, drag = null, rafId = 0, lastFrame = 0;
+  let cand = null, candCount = 0, keyTimer = 0, autoTimer = 0, ro = null;
+  const cleanups = [];
+  function on(target, type, fn, opts){ target.addEventListener(type, fn, opts); cleanups.push(() => target.removeEventListener(type, fn, opts)); }
+
+  // ---------- reading tiles ----------
+  function sourceReady(){
+    if (!source) return false;
+    if (source.kind === 'video') return source.el.readyState >= 2 && source.el.videoWidth > 0;
+    return true;
+  }
+  function extract(){
+    wctx.imageSmoothingEnabled = true;
+    wctx.imageSmoothingQuality = 'high';
+    wctx.clearRect(0, 0, WORK, WORK);
+    wctx.drawImage(source.el, rect.x, rect.y, rect.w, rect.h, 0, 0, WORK, WORK);
+    const d = wctx.getImageData(0, 0, WORK, WORK).data;
+    const off = Math.round(CELL * INSET), span = CELL - 2 * off;
+    const feats = [];
+    for (let i = 0; i < 4; i++){
+      for (let j = 0; j < 4; j++){
+        const bx = j * CELL + off, by = i * CELL + off;
+        const sums = new Float64Array(TH * TH * 3), cnt = new Uint32Array(TH * TH);
+        let mr = 0, mg = 0, mb = 0, n = 0;
+        for (let y = 0; y < span; y++){
+          const ty = ((y * TH) / span) | 0;
+          for (let x = 0; x < span; x++){
+            const tx = ((x * TH) / span) | 0;
+            const p = ((by + y) * WORK + (bx + x)) * 4;
+            const r = d[p], g = d[p + 1], b = d[p + 2];
+            mr += r; mg += g; mb += b; n++;
+            const k = (ty * TH + tx) * 3;
+            sums[k] += r; sums[k + 1] += g; sums[k + 2] += b; cnt[ty * TH + tx]++;
+          }
+        }
+        const t = new Array(TH * TH * 3);
+        for (let k = 0; k < TH * TH; k++){
+          for (let c = 0; c < 3; c++) t[k * 3 + c] = Math.round(sums[k * 3 + c] / Math.max(1, cnt[k]));
+        }
+        feats.push({ m: [Math.round(mr / n), Math.round(mg / n), Math.round(mb / n)], t });
+      }
+    }
+    return feats;
+  }
+  function colorDist(a, b){
+    const rm = (a[0] + b[0]) / 2, dr = a[0] - b[0], dg = a[1] - b[1], db = a[2] - b[2];
+    return Math.sqrt((2 + rm / 256) * dr * dr + 4 * dg * dg + (2 + (255 - rm) / 256) * db * db);
+  }
+  // Compare two tile thumbnails, allowing a small slide so a digit that sits a few pixels
+  // off-centre in one cell still matches the same digit in another.
+  function thumbDist(a, b){
+    let best = Infinity;
+    for (let sy = -SHIFT; sy <= SHIFT; sy++){
+      for (let sx = -SHIFT; sx <= SHIFT; sx++){
+        let s = 0, n = 0;
+        const y0 = Math.max(0, -sy), y1 = Math.min(TH, TH - sy), x0 = Math.max(0, -sx), x1 = Math.min(TH, TH - sx);
+        for (let y = y0; y < y1; y++){
+          for (let x = x0; x < x1; x++){
+            const ia = (y * TH + x) * 3, ib = ((y + sy) * TH + (x + sx)) * 3;
+            const d0 = a[ia] - b[ib], d1 = a[ia + 1] - b[ib + 1], d2 = a[ia + 2] - b[ib + 2];
+            s += d0 * d0 + d1 * d1 + d2 * d2; n += 3;
+          }
+        }
+        const dd = Math.sqrt(s / n) + 1.5 * (Math.abs(sx) + Math.abs(sy));
+        if (dd < best) best = dd;
+      }
+    }
+    return best;
+  }
+  const learnedAll = () => VALUES.every(v => samples.some(s => s.v === v));
+  function classify(f){
+    const full = learnedAll();
+    const ds = VALUES.map(v => {
+      const mine = samples.filter(s => s.v === v);
+      let dd;
+      if (full) dd = Math.min(...mine.map(s => thumbDist(f.t, s.t)));
+      else if (mine.length) dd = Math.min(...mine.map(s => colorDist(f.m, s.m)));
+      else dd = colorDist(f.m, PALETTE[v]);
+      return { v, d: dd };
+    }).sort((a, b) => a.d - b.d);
+    const margin = (ds[1].d - ds[0].d) / (ds[1].d + 1e-6);
+    return { v: ds[0].v, amb: margin < 0.25 };
+  }
+  function readNow(){
+    if (!sourceReady() || !rect) return null;
+    let feats;
+    try { feats = extract(); } catch { return null; }
+    const res = feats.map(classify);
+    return { feats, pred: res.map(r => r.v), amb: res.map(r => r.amb) };
+  }
+  function applyRead(r){
+    lastRead = { id: ++readSeq, feats: r.feats, pred: r.pred, amb: r.amb, locked: new Set() };
+    linked = true;
+    grid = [0, 1, 2, 3].map(i => r.pred.slice(i * 4, i * 4 + 4));
+    renderBoard(document.getElementById('gridBoard'));
+    gridSolve();
+    renderState();
+  }
+  function reclassify(){
+    if (!lastRead) return;
+    lastRead.feats.forEach((f, k) => {
+      const c = classify(f);
+      lastRead.pred[k] = c.v; lastRead.amb[k] = c.amb;
+      if (linked && !lastRead.locked.has(k)) grid[k >> 2][k & 3] = c.v;
+    });
+  }
+  function addSample(s){
+    samples = samples.filter(x => x.src !== s.src);
+    samples.push(s);
+    const per = {}, kept = [];
+    for (let i = samples.length - 1; i >= 0; i--){
+      const x = samples[i];
+      per[x.v] = (per[x.v] || 0) + 1;
+      if (per[x.v] <= 16) kept.unshift(x);
+    }
+    samples = kept;
+    store.set(K_SAMPLES, samples);
+  }
+  function doRead(){
+    const r = readNow();
+    if (!r) return false;
+    applyRead(r);
+    drawView();
+    return true;
+  }
+
+  // ---------- status text ----------
+  function renderState(){
+    const counts = VALUES.map(v => samples.filter(s => s.v === v).length);
+    const total = counts.reduce((a, b) => a + b, 0);
+    const parts = [];
+    if (linked && lastRead){
+      const fixes = lastRead.locked.size;
+      parts.push(fixes ? `Board read from screen · ${fixes} fixed` : 'Board read from screen');
+    }
+    parts.push(total === 0
+      ? 'Reading by tile colour'
+      : `${learnedAll() ? 'Matching learned tiles' : 'Reading by colour plus your fixes'} (-1: ${counts[0]}, 0: ${counts[1]}, +1: ${counts[2]})`);
+    $('scState').textContent = parts.join(' · ');
+    $('scForget').hidden = total === 0;
+  }
+  function updateControls(){
+    $('scRead').disabled = !(source && rect);
+    $('scHint').textContent = !source
+      ? ''
+      : rect
+        ? 'Drag inside the box to move it, drag a corner to resize, or use the arrow keys (Shift for bigger steps, + / - to resize).'
+        : 'Drag a box around the 16 tiles, from the outer edge of the top-left tile to the outer edge of the bottom-right tile.';
+    $('scHint').hidden = !source;
+  }
+  function showNote(html){ const n = $('scNote'); n.innerHTML = html; n.hidden = !html; }
+
+  // ---------- preview ----------
+  function clampRect(r){
+    if (!source) return r;
+    const w = Math.max(8, Math.min(r.w, source.w)), h = Math.max(8, Math.min(r.h, source.h));
+    return { x: Math.max(0, Math.min(r.x, source.w - w)), y: Math.max(0, Math.min(r.y, source.h - h)), w, h };
+  }
+  function saveRect(){ if (rect && source) store.set(K_RECT, { x: rect.x / source.w, y: rect.y / source.h, w: rect.w / source.w, h: rect.h / source.h }); }
+  function loadRect(){
+    const f = store.get(K_RECT, null);
+    if (!f || !source || typeof f.x !== 'number') return null;
+    return clampRect({ x: f.x * source.w, y: f.y * source.h, w: f.w * source.w, h: f.h * source.h });
+  }
+  function computeView(){
+    if (frozenView) return frozenView;
+    if (!source) return null;
+    if ($('scZoom').checked && rect){
+      const px = rect.w * 0.35, py = rect.h * 0.45;
+      const x = Math.max(0, rect.x - px), y = Math.max(0, rect.y - py);
+      return { x, y, w: Math.min(source.w - x, rect.w + 2 * px), h: Math.min(source.h - y, rect.h + 2 * py) };
+    }
+    return { x: 0, y: 0, w: source.w, h: source.h };
+  }
+  function layoutView(){
+    const v = computeView();
+    if (!v) return;
+    const stageW = Math.max(120, stage.clientWidth - 2);
+    const maxH = Math.max(240, Math.min(window.innerHeight * 0.62, 680));
+    const s = Math.min(stageW / v.w, maxH / v.h);
+    const cssW = Math.max(1, Math.floor(v.w * s)), cssH = Math.max(1, Math.floor(v.h * s));
+    const dpr = window.devicePixelRatio || 1;
+    const pw = Math.round(cssW * dpr), ph = Math.round(cssH * dpr);
+    if (view.width !== pw) view.width = pw;
+    if (view.height !== ph) view.height = ph;
+    view.style.width = cssW + 'px';
+    view.style.height = cssH + 'px';
+    V = { ...v, s, cssW, cssH, dpr };
+  }
+  const toCss = (x, y) => [(x - V.x) * V.s, (y - V.y) * V.s];
+  function pill(ctx, x, y, text){
+    ctx.font = '900 12px Manrope, system-ui, sans-serif';
+    const w = Math.max(22, ctx.measureText(text).width + 12), h = 20;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(x - w / 2, y - h / 2, w, h, 10); else ctx.rect(x - w / 2, y - h / 2, w, h);
+    ctx.fill();
+    ctx.fillStyle = '#042838';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(text, x, y + 0.5);
+  }
+  function drawOverlay(ctx){
+    const [bx, by] = toCss(rect.x, rect.y);
+    const bw = rect.w * V.s, bh = rect.h * V.s, cw = bw / 4, ch = bh / 4;
+    ctx.fillStyle = 'rgba(4,10,12,0.45)';
+    ctx.fillRect(0, 0, V.cssW, Math.max(0, by));
+    ctx.fillRect(0, by + bh, V.cssW, Math.max(0, V.cssH - by - bh));
+    ctx.fillRect(0, by, Math.max(0, bx), bh);
+    ctx.fillRect(bx + bw, by, Math.max(0, V.cssW - bx - bw), bh);
+    ctx.save();
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.55)'; ctx.strokeRect(bx, by, bw, bh);
+    ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(88,176,255,0.95)'; ctx.strokeRect(bx, by, bw, bh);
+    ctx.setLineDash([4, 4]); ctx.strokeStyle = 'rgba(100,210,220,0.6)'; ctx.lineWidth = 1;
+    for (let k = 1; k < 4; k++){
+      ctx.beginPath(); ctx.moveTo(bx + cw * k, by); ctx.lineTo(bx + cw * k, by + bh); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(bx, by + ch * k); ctx.lineTo(bx + bw, by + ch * k); ctx.stroke();
+    }
+    ctx.setLineDash([]);
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+    for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++){
+      ctx.strokeRect(bx + j * cw + cw * INSET, by + i * ch + ch * INSET, cw * (1 - 2 * INSET), ch * (1 - 2 * INSET));
+    }
+    ctx.fillStyle = 'rgba(88,176,255,1)'; ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+    for (const [hx, hy] of [[bx, by], [bx + bw, by], [bx, by + bh], [bx + bw, by + bh]]){
+      ctx.fillRect(hx - 5, hy - 5, 10, 10); ctx.strokeRect(hx - 5, hy - 5, 10, 10);
+    }
+    if (linked && lastRead){
+      const r = Math.max(7, Math.min(13, Math.min(cw, ch) * 0.16));
+      for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++){
+        const k = i * 4 + j, v = grid[i][j];
+        const cx = bx + j * cw + Math.max(r + 3, cw * 0.18), cy = by + i * ch + Math.max(r + 3, ch * 0.18);
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.fillStyle = TILE_FILL[v]; ctx.fill();
+        ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.stroke();
+        if (!lastRead.locked.has(k) && lastRead.amb[k]){
+          ctx.setLineDash([3, 3]); ctx.strokeStyle = '#F1C40F'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.arc(cx, cy, r + 4, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+        }
+        ctx.fillStyle = TILE_INK[v];
+        ctx.font = `900 ${Math.round(r * 0.95)}px Manrope, system-ui, sans-serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(label(v), cx, cy + 0.5);
+      }
+      // Tap counts: rows outside the box on whichever side has room; columns above, else below.
+      const roomL = bx, roomR = V.cssW - (bx + bw), roomT = by, roomB = V.cssH - (by + bh);
+      const rowX = roomL >= 36 ? bx - 19 : roomR >= 36 ? bx + bw + 19 : bx + bw - 18;
+      const colY = roomT >= 28 ? by - 14 : roomB >= 28 ? by + bh + 14 : by + bh - 13;
+      for (let i = 0; i < 4; i++) if (lastRowTaps[i]) pill(ctx, rowX, by + ch * (i + 0.5), `×${lastRowTaps[i]}`);
+      for (let j = 0; j < 4; j++) if (lastColTaps[j]) pill(ctx, bx + cw * (j + 0.5), colY, `×${lastColTaps[j]}`);
+    }
+    ctx.restore();
+  }
+  function drawView(){
+    if (!source) return;
+    layoutView();
+    if (!V) return;
+    vctx.setTransform(V.dpr, 0, 0, V.dpr, 0, 0);
+    vctx.clearRect(0, 0, V.cssW, V.cssH);
+    try { vctx.drawImage(source.el, V.x, V.y, V.w, V.h, 0, 0, V.cssW, V.cssH); } catch {}
+    if (rect) drawOverlay(vctx);
+  }
+  function loop(ts){
+    if (!source || source.kind !== 'video'){ rafId = 0; return; }
+    if (ts - lastFrame >= 33){ drawView(); lastFrame = ts; }
+    rafId = requestAnimationFrame(loop);
+  }
+
+  // ---------- box editing ----------
+  function evPoint(e){
+    const b = view.getBoundingClientRect();
+    const sx = b.width ? V.cssW / b.width : 1, sy = b.height ? V.cssH / b.height : 1;   // handles CSS zoom
+    const cx = (e.clientX - b.left) * sx, cy = (e.clientY - b.top) * sy;
+    return { sx: V.x + cx / V.s, sy: V.y + cy / V.s, cx, cy };
+  }
+  function hitTest(p){
+    if (!rect || !V) return 'draw';
+    const [bx, by] = toCss(rect.x, rect.y), bw = rect.w * V.s, bh = rect.h * V.s;
+    const corners = { nw: [bx, by], ne: [bx + bw, by], sw: [bx, by + bh], se: [bx + bw, by + bh] };
+    for (const name in corners){
+      const [hx, hy] = corners[name];
+      if (Math.abs(p.cx - hx) <= 14 && Math.abs(p.cy - hy) <= 14) return name;
+    }
+    if (p.cx >= bx && p.cx <= bx + bw && p.cy >= by && p.cy <= by + bh) return 'move';
+    return 'draw';
+  }
+  const CURSORS = { nw: 'nwse-resize', se: 'nwse-resize', ne: 'nesw-resize', sw: 'nesw-resize', move: 'move', draw: 'crosshair' };
+  on(view, 'pointerdown', (e) => {
+    if (!source || !V) return;
+    e.preventDefault();
+    view.focus();
+    try { view.setPointerCapture(e.pointerId); } catch {}
+    frozenView = { x: V.x, y: V.y, w: V.w, h: V.h };
+    const p = evPoint(e);
+    drag = { mode: hitTest(p), start: p, rect0: rect ? { ...rect } : null };
+  });
+  on(view, 'pointermove', (e) => {
+    if (!source || !V) return;
+    const p = evPoint(e);
+    if (!drag){ view.style.cursor = CURSORS[hitTest(p)]; return; }
+    const dx = p.sx - drag.start.sx, dy = p.sy - drag.start.sy, r0 = drag.rect0;
+    const minS = 16 / V.s;
+    if (drag.mode === 'draw'){
+      const x0 = Math.max(0, Math.min(source.w, drag.start.sx)), y0 = Math.max(0, Math.min(source.h, drag.start.sy));
+      const x1 = Math.max(0, Math.min(source.w, p.sx)), y1 = Math.max(0, Math.min(source.h, p.sy));
+      rect = { x: Math.min(x0, x1), y: Math.min(y0, y1), w: Math.abs(x1 - x0), h: Math.abs(y1 - y0) };
+    } else if (drag.mode === 'move'){
+      rect = clampRect({ x: r0.x + dx, y: r0.y + dy, w: r0.w, h: r0.h });
+    } else {
+      let L = r0.x, T = r0.y, R = r0.x + r0.w, B = r0.y + r0.h;
+      if (drag.mode.includes('w')) L = Math.min(R - minS, Math.max(0, L + dx));
+      if (drag.mode.includes('e')) R = Math.max(L + minS, Math.min(source.w, R + dx));
+      if (drag.mode.includes('n')) T = Math.min(B - minS, Math.max(0, T + dy));
+      if (drag.mode.includes('s')) B = Math.max(T + minS, Math.min(source.h, B + dy));
+      rect = { x: L, y: T, w: R - L, h: B - T };
+    }
+    if (source.kind === 'image') drawView();
+  });
+  function endDrag(e){
+    if (!drag) return;
+    try { view.releasePointerCapture(e.pointerId); } catch {}
+    if (drag.mode === 'draw' && (!rect || rect.w * V.s < 16 || rect.h * V.s < 16)) rect = drag.rect0;
+    drag = null; frozenView = null;
+    if (rect){ rect = clampRect(rect); saveRect(); doRead(); }
+    updateControls();
+    drawView();
+  }
+  on(view, 'pointerup', endDrag);
+  on(view, 'pointercancel', endDrag);
+  on(view, 'keydown', (e) => {
+    if (!rect || !source) return;
+    const step = (e.shiftKey ? 10 : 1) / Math.max(V ? V.s : 1, 0.0001);
+    let used = true;
+    if (e.key === 'ArrowLeft') rect.x -= step;
+    else if (e.key === 'ArrowRight') rect.x += step;
+    else if (e.key === 'ArrowUp') rect.y -= step;
+    else if (e.key === 'ArrowDown') rect.y += step;
+    else if (e.key === '+' || e.key === '='){ rect.x -= step; rect.y -= step; rect.w += 2 * step; rect.h += 2 * step; }
+    else if (e.key === '-' || e.key === '_'){ rect.x += step; rect.y += step; rect.w -= 2 * step; rect.h -= 2 * step; }
+    else used = false;
+    if (!used) return;
+    e.preventDefault();
+    rect = clampRect(rect);
+    drawView();
+    clearTimeout(keyTimer);
+    keyTimer = setTimeout(() => { saveRect(); doRead(); }, 160);
+  });
+
+  // ---------- sources ----------
+  function setSource(el, kind, w, h){
+    source = { el, kind, w, h };
+    rect = loadRect();
+    $('scEmpty').hidden = true;
+    view.hidden = false;
+    $('scSrc').textContent = `${kind === 'video' ? 'Live' : 'Screenshot'} · ${w}×${h}`;
+    updateControls();
+    drawView();
+    if (rect) doRead();
+    if (kind === 'video' && !rafId) rafId = requestAnimationFrame(loop);
+  }
+  function clearSource(){
+    source = null;
+    view.hidden = true;
+    $('scEmpty').hidden = false;
+    $('scSrc').textContent = 'No screen yet';
+    updateControls();
+  }
+  function captureAllowedHere(){
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) return false;
+    try {
+      const fp = document.permissionsPolicy || document.featurePolicy;
+      if (fp && typeof fp.allowsFeature === 'function' && !fp.allowsFeature('display-capture')) return false;
+    } catch {}
+    return true;
+  }
+  const PASTE_TIP = 'paste a screenshot instead: <kbd>⌃</kbd><kbd>⇧</kbd><kbd>⌘</kbd><kbd>4</kbd>, <kbd>Space</kbd>, click the mirroring window, then <kbd>⌘</kbd><kbd>V</kbd> here.';
+  async function startCapture(){
+    if (!captureAllowedHere()){ showNote(`<strong>Screen capture is not available in this browser or page.</strong> You can ${PASTE_TIP}`); return; }
+    showNote('');
+    let s;
+    try {
+      s = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 30, max: 30 } }, audio: false });
+    } catch (err){
+      showNote(`<strong>Capture did not start.</strong> Press Capture Window again and pick the iPhone Mirroring window. On a Mac the browser may need Screen Recording permission (System Settings → Privacy &amp; Security). Or ${PASTE_TIP}`);
+      return;
+    }
+    if (!schoolCap){ s.getTracks().forEach(t => t.stop()); return; }   // view was left while the picker was open
+    stopCapture(true);
+    stream = s;
+    video.srcObject = s;
+    const track = s.getVideoTracks()[0];
+    try { if ('contentHint' in track) track.contentHint = 'detail'; } catch {}
+    track.addEventListener('ended', () => stopCapture());
+    try { await video.play(); } catch {}
+    const ready = () => {
+      if (!stream) return;
+      if (!video.videoWidth){ requestAnimationFrame(ready); return; }
+      setSource(video, 'video', video.videoWidth, video.videoHeight);
+    };
+    ready();
+    $('scStop').hidden = false;
+    $('scCapture').textContent = 'Change Window';
+  }
+  function stopCapture(silent){
+    if (stream){ stream.getTracks().forEach(t => t.stop()); stream = null; }
+    video.srcObject = null;
+    const stopBtn = $('scStop'), capBtn = $('scCapture');
+    if (stopBtn) stopBtn.hidden = true;
+    if (capBtn) capBtn.textContent = 'Capture Window';
+    if (source && source.kind === 'video' && !silent) clearSource();
+  }
+  on(video, 'resize', () => {
+    if (source && source.kind === 'video' && video.videoWidth && (video.videoWidth !== source.w || video.videoHeight !== source.h)){
+      source.w = video.videoWidth; source.h = video.videoHeight;
+      rect = loadRect();
+      $('scSrc').textContent = `Live · ${source.w}×${source.h}`;
+      updateControls();
+    }
+  });
+  function loadImageBlob(blob){
+    if (!blob || !/^image\//.test(blob.type || 'image/')) return;
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => {
+      if (!schoolCap){ URL.revokeObjectURL(url); return; }
+      if (stream) stopCapture(true);
+      setSource(img, 'image', img.naturalWidth, img.naturalHeight);
+      setTimeout(() => URL.revokeObjectURL(url), 0);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); showNote('<strong>That file could not be opened as an image.</strong> Try a PNG or JPEG screenshot.'); };
+    img.src = url;
+  }
+
+  // ---------- controls ----------
+  on($('scCapture'), 'click', startCapture);
+  on($('scStop'), 'click', () => stopCapture());
+  on($('scOpen'), 'click', () => $('scFile').click());
+  on($('scFile'), 'change', (e) => { const f = e.target.files && e.target.files[0]; if (f) loadImageBlob(f); e.target.value = ''; });
+  on($('scRead'), 'click', () => { if (!doRead()) showNote('<strong>The screen is not ready yet.</strong> Wait a moment for the capture to start, then press Read Board.'); });
+  on($('scZoom'), 'change', () => { store.set(K_ZOOM, $('scZoom').checked); drawView(); });
+  on($('scForget'), 'click', () => {
+    samples = []; store.del(K_SAMPLES);
+    if (lastRead && linked){ lastRead.locked.clear(); reclassify(); renderBoard(document.getElementById('gridBoard')); gridSolve(); }
+    renderState();
+    drawView();
+  });
+  on(window, 'paste', (e) => {
+    const items = e.clipboardData ? Array.from(e.clipboardData.items) : [];
+    const it = items.find(x => x.type && x.type.startsWith('image/'));
+    if (it){ e.preventDefault(); loadImageBlob(it.getAsFile()); }
+  });
+  on(stage, 'dragover', (e) => { e.preventDefault(); stage.classList.add('sc-drop'); });
+  on(stage, 'dragleave', () => stage.classList.remove('sc-drop'));
+  on(stage, 'drop', (e) => {
+    e.preventDefault(); stage.classList.remove('sc-drop');
+    const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) loadImageBlob(f);
+  });
+  on(window, 'resize', () => { if (source) drawView(); });
+  try { ro = new ResizeObserver(() => { if (source && source.kind === 'image') drawView(); }); ro.observe(stage); } catch {}
+
+  // Keep reading: apply a new read once the screen shows the same board three reads in a row.
+  autoTimer = setInterval(() => {
+    if (!$('scAuto').checked || !source || source.kind !== 'video' || !rect || drag) return;
+    const r = readNow();
+    if (!r) return;
+    const key = r.pred.join(',');
+    const cur = linked && lastRead ? lastRead.pred.join(',') : null;
+    if (key === cur){ cand = null; candCount = 0; return; }
+    if (key === cand) candCount++; else { cand = key; candCount = 1; }
+    if (candCount >= 3){ applyRead(r); cand = null; candCount = 0; }
+  }, 250);
+
+  $('scZoom').checked = !!store.get(K_ZOOM, false);
+  updateControls();
+  renderState();
+
+  schoolCap = {
+    destroy(){
+      stopCapture(true);
+      clearInterval(autoTimer); clearTimeout(keyTimer);
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = 0; source = null;
+      try { ro && ro.disconnect(); } catch {}
+      cleanups.forEach(fn => { try { fn(); } catch {} });
+    },
+    // Called after the user taps a tile. Returns true if other tiles changed as a result.
+    onCellEdit(i, j){
+      if (!linked || !lastRead) return false;
+      const k = i * 4 + j;
+      lastRead.locked.add(k);
+      const f = lastRead.feats[k];
+      addSample({ v: grid[i][j], m: f.m, t: f.t, src: `${SESSION}:${lastRead.id}:${k}` });
+      const before = grid.flat().join(',');
+      reclassify();
+      renderState();
+      return grid.flat().join(',') !== before;
+    },
+    decorate(boardEl){
+      if (!boardEl) return;
+      boardEl.querySelectorAll('.cell[data-row]').forEach(cell => {
+        const k = (+cell.dataset.row) * 4 + (+cell.dataset.col);
+        const show = linked && lastRead;
+        cell.classList.toggle('sc-fixed', !!(show && lastRead.locked.has(k)));
+        cell.classList.toggle('sc-amb', !!(show && !lastRead.locked.has(k) && lastRead.amb[k]));
+      });
+    },
+    unlink(){ linked = false; lastRead = null; renderState(); drawView(); },
+    redraw(){ if (source && source.kind === 'image') drawView(); },
+    // Small hook for automated checks.
+    test: { loadImageBlob, setRect(r){ rect = clampRect(r); saveRect(); updateControls(); drawView(); }, read: doRead, state: () => ({ samples: samples.length, learnedAll: learnedAll(), linked, amb: lastRead ? lastRead.amb.slice() : null }) }
+  };
 }
 
 // === sanctum/solver ===
